@@ -1,4 +1,6 @@
 #!/system/bin/sh
+#Frost_Bai
+#amend
 SKIPUNZIP=1
 
 ui_print "- 解压模块文件..."
@@ -20,29 +22,14 @@ ui_print "***********************************************"
 
 GETPROP="/system/bin/getprop"
 
-DEVICE_MODEL=$("$GETPROP" ro.product.model)
-[ -z "$DEVICE_MODEL" ] && DEVICE_MODEL=$("$GETPROP" ro.product.odm.model)
+ui_print "- 正在检测设备品牌..."
 
-MARKET_NAME=$("$GETPROP" ro.vendor.oplus.market.name)
-[ -z "$MARKET_NAME" ] && MARKET_NAME=$("$GETPROP" ro.product.market.name)
-[ -z "$MARKET_NAME" ] && MARKET_NAME="$DEVICE_MODEL"
-
-BRAND=$("$GETPROP" ro.product.brand)
-[ -z "$BRAND" ] && BRAND=$("$GETPROP" ro.product.system.brand)
-BRAND=$(echo "$BRAND" | tr '[:upper:]' '[:lower:]')
-
-MANUFACTURER=$("$GETPROP" ro.product.manufacturer)
-[ -z "$MANUFACTURER" ] && MANUFACTURER=$("$GETPROP" ro.product.system.manufacturer)
-MANUFACTURER=$(echo "$MANUFACTURER" | tr '[:upper:]' '[:lower:]')
-
-ui_print "- 正在监测设备品牌..."
+DEVICE_BRAND=$("$GETPROP" ro.product.vendor.brand)
+[ -z "$DEVICE_BRAND" ] && DEVICE_BRAND=$("$GETPROP" ro.product.brand)
+DEVICE_BRAND=$(echo "$DEVICE_BRAND" | tr '[:upper:]' '[:lower:]')
 
 BRAND_OK=0
-if echo "$BRAND" | grep -qiE "oneplus|oppo|realme|oplus"; then
-    BRAND_OK=1
-elif echo "$MANUFACTURER" | grep -qiE "oneplus|oppo|realme|oplus"; then
-    BRAND_OK=1
-elif echo "$DEVICE_MODEL" | grep -qiE "^PHK|^PH[A-Z]|^CPH|^RMX|^PJ[A-Z]"; then
+if echo "$DEVICE_BRAND" | grep -qiE "oneplus|oppo|realme|oplus"; then
     BRAND_OK=1
 fi
 
@@ -50,9 +37,7 @@ if [ "$BRAND_OK" -eq 0 ]; then
     ui_print " "
     ui_print "❌ 设备品牌监测失败!"
     ui_print "---------------------------------------------"
-    ui_print "监测到的品牌: $BRAND"
-    ui_print "监测到的制造商: $MANUFACTURER"
-    ui_print "监测到的型号: $DEVICE_MODEL"
+    ui_print "监测到的品牌: $DEVICE_BRAND"
     ui_print "---------------------------------------------"
     ui_print "此模块仅支持: OnePlus / OPPO / Realme"
     ui_print "安装已取消!"
@@ -60,7 +45,7 @@ if [ "$BRAND_OK" -eq 0 ]; then
     abort "设备不兼容"
 fi
 
-ui_print "✓ 品牌监测通过: $BRAND / $MANUFACTURER"
+ui_print "✓ 品牌监测通过: $DEVICE_BRAND"
 
 ui_print "- 正在激活并监测刷新率档位..."
 
@@ -76,25 +61,15 @@ LIST_SF=$(dumpsys SurfaceFlinger | grep -oE "fps[=:][0-9.]+" | awk -F'[=:]' '{pr
 ALL_RATES="$LIST_FRAMEWORK $LIST_SF"
 DETECTED=$(echo "$ALL_RATES" | tr ' ' '\n' | awk '{if($1>=30) printf("%.0f\n", $1)}' | sort -n | uniq)
 
-if [ -z "$DETECTED" ]; then
-    ui_print "[-] 未监测到有效档位,使用默认值"
-    DETECTED="60 90 120"
-fi
-
 RATES=$(echo "$DETECTED" | xargs)
 
-ANDROID_VER=$("$GETPROP" ro.build.version.release)
-ROM_VERSION=$("$GETPROP" ro.build.display.id)
-KERNEL_VER=$(uname -r)
-
 ui_print "---------------------------------------------"
-ui_print "【设备信息监测】"
-ui_print "• 机型型号: $DEVICE_MODEL"
-ui_print "• 机型名称: $MARKET_NAME"
-ui_print "• 安卓版本: Android $ANDROID_VER"
-ui_print "• 内核版本: $KERNEL_VER"
-ui_print "• 系统版本: $ROM_VERSION"
-ui_print "• 支持刷新率: $RATES"
+ui_print "• 设备厂商: $DEVICE_BRAND"
+if [ -z "$RATES" ]; then
+    ui_print "• 支持刷新率: 未检测到有效档位"
+else
+    ui_print "• 支持刷新率: $RATES"
+fi
 ui_print "---------------------------------------------"
 
 MODID="Yuanxing_Stellar_MaxRefresh_Pro"
