@@ -110,6 +110,32 @@
                     </div>
                 </div>
             </div>
+
+            <div class="glass-card">
+                <div class="card-header">
+                    <span class="card-title">支持作者</span>
+                </div>
+                <div class="about-links">
+                    <div class="about-item" id="donate-wx">
+                        <div class="about-icon wxpay">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                        </div>
+                        <div class="about-content">
+                            <div class="about-title">微信支付</div>
+                            <div class="about-subtitle">感谢您的支持</div>
+                        </div>
+                    </div>
+                    <div class="about-item" id="donate-ali">
+                        <div class="about-icon alipay">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 4h2v4h4v2h-4v4h-2v-4H7v-2h4z"/></svg>
+                        </div>
+                        <div class="about-content">
+                            <div class="about-title">支付宝</div>
+                            <div class="about-subtitle">感谢您的支持</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="ui-tabbar">
@@ -139,6 +165,12 @@
                 <input type="text" class="ui-input" id="app-package" placeholder="输入包名 (如: com.tencent.tmgp.sgame)">
                 <input type="number" class="ui-input" id="app-rate-id" placeholder="输入刷新率ID (如: 4)">
             </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="qr-modal">
+        <div class="modal-panel">
+            <img id="qr-image" src="" class="qr-big">
         </div>
     </div>
 

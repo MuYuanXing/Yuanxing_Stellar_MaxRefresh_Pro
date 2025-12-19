@@ -56,6 +56,13 @@ class StellarEngine {
         document.getElementById('qq-link').addEventListener('click', () => {
             this.openQQGroup();
         });
+
+        document.getElementById('donate-wx').addEventListener('click', () => this.showQrModal('pay/wxpay.png'));
+        document.getElementById('donate-ali').addEventListener('click', () => this.showQrModal('pay/alipay.png'));
+        
+        document.getElementById('qr-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'qr-modal') this.hideQrModal();
+        });
     }
 
     injectScanButton() {
@@ -257,7 +264,7 @@ class StellarEngine {
                 this.isNative165Device = true;
                 this.nativeMaxFps = 165;
             }
-            else if (model.match(/^(PLC110|RMX3706)$/)) {
+            else if (model.match(/^(PLC110|RMX3706|RMX5200)$/)) {
                 this.isNative165Device = true;
                 this.nativeMaxFps = 144;
             }
@@ -450,6 +457,19 @@ class StellarEngine {
         const url = 'https://qun.qq.com/universal-share/share?ac=1&authKey=%2FTGXCSmJqVxUBWEry7%2Fj5yyTp91URzS3lfjYavmMrA%2BOYMRVSGEaryIk8XID678s&busi_data=eyJncm91cENvZGUiOiIxMDYyMzM1ODk1IiwidG9rZW4iOiJNYkZWeE9CcUhxSE0waWlZMTVBbGJvUUdpdTRVZ24zMUlheC9Bd00rM2NhVDk2T3hCbTNUQldRSnBXVXk0akp1IiwidWluIjoiMzg5NDM3NDc0MSJ9&data=z6YmQ56hityzX99ash8MVa2yrN9uI02C4eh6YVPljfNdT4uMsmHgRC9FRX24q3CwJV1xkyxmIx4dR1RGTvPkyQ&svctype=4&tempid=h5_group_info';
         await this.exec(`/system/bin/am start -a android.intent.action.VIEW -d "${url}"`);
         this.showToast('正在打开QQ群...');
+    }
+
+    showQrModal(imgSrc) {
+        const modal = document.getElementById('qr-modal');
+        document.getElementById('qr-image').src = imgSrc;
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    hideQrModal() {
+        const modal = document.getElementById('qr-modal');
+        modal.classList.remove('show');
+        setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
     showToast(msg) {
