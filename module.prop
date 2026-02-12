@@ -1,7 +1,6 @@
 id=Yuanxing_Stellar_MaxRefresh_Pro
 name=星驰引擎_极速高刷Pro
-version=v3.1
-versionCode=31
-author=酷安@穆远星
-description=星驰引擎基础配置文件，如果在安装后看到此描述，说明Customize脚本执行异常。
-updateJson=https://raw.githubusercontent.com/MuYuanXing/Yuanxing_Stellar_MaxRefresh_Pro/main/update.json
+version=V4.4
+versionCode=44
+author=穆远星
+description=星驰引擎基础配置文件，如果在安装后看到此描述，说明customize.sh脚本执行异常。

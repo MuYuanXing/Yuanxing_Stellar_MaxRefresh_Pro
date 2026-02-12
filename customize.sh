@@ -1,99 +1,236 @@
 #!/system/bin/sh
-#Frost_Bai
-#amend
 SKIPUNZIP=1
 
 ui_print "- 解压模块文件..."
-unzip -o "$ZIPFILE" -d $MODPATH >&2
+unzip -o "$ZIPFILE" -d "$MODPATH" >&2
 
-set_perm_recursive $MODPATH 0 0 0755 0644
-set_perm $MODPATH/service.sh 0 0 0755
-set_perm $MODPATH/post-fs-data.sh 0 0 0755
-set_perm $MODPATH/uninstall.sh 0 0 0755
-set_perm $MODPATH/setup_extras.sh 0 0 0755
+rm -rf "$MODPATH/META-INF"
 
-MODULE_NAME=$(grep -E '^name=' "$MODPATH/module.prop" | cut -d'=' -f2-)
-MODULE_VERSION=$(grep -E '^version=' "$MODPATH/module.prop" | cut -d'=' -f2-)
+set_perm_recursive "$MODPATH" 0 0 0755 0644
+set_perm "$MODPATH/service.sh" 0 0 0755
+set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
+set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
-ui_print "***********************************************"
-ui_print " $MODULE_NAME $MODULE_VERSION"
+mod_name=$(grep -E '^name=' "$MODPATH/module.prop" | cut -d'=' -f2-)
+mod_ver=$(grep -E '^version=' "$MODPATH/module.prop" | cut -d'=' -f2-)
+
+ui_print "============================================="
+ui_print " $mod_name $mod_ver"
 ui_print " 作者: 酷安@穆远星"
-ui_print "***********************************************"
+ui_print "============================================="
 
-GETPROP="/system/bin/getprop"
+GP="/system/bin/getprop"
 
-ui_print "- 正在检测设备品牌..."
+model=$("$GP" ro.product.model)
+[ -z "$model" ] && model=$("$GP" ro.product.odm.model)
 
-DEVICE_BRAND=$("$GETPROP" ro.product.vendor.brand)
-[ -z "$DEVICE_BRAND" ] && DEVICE_BRAND=$("$GETPROP" ro.product.brand)
-DEVICE_BRAND=$(echo "$DEVICE_BRAND" | tr '[:upper:]' '[:lower:]')
+market=$("$GP" ro.vendor.oplus.market.name)
+[ -z "$market" ] && market=$("$GP" ro.product.market.name)
+[ -z "$market" ] && market="$model"
 
-BRAND_OK=0
-if echo "$DEVICE_BRAND" | grep -qiE "oneplus|oppo|realme|oplus"; then
-    BRAND_OK=1
-fi
+brand=$("$GP" ro.product.brand)
+[ -z "$brand" ] && brand=$("$GP" ro.product.system.brand)
+brand=$(echo "$brand" | tr '[:upper:]' '[:lower:]')
 
-if [ "$BRAND_OK" -eq 0 ]; then
+mfr=$("$GP" ro.product.manufacturer)
+[ -z "$mfr" ] && mfr=$("$GP" ro.product.system.manufacturer)
+mfr=$(echo "$mfr" | tr '[:upper:]' '[:lower:]')
+
+ui_print "- 正在监测设备品牌..."
+
+ok=0
+echo "$brand" | grep -qiE "oneplus|oppo|realme|oplus" && ok=1
+[ $ok -eq 0 ] && echo "$mfr" | grep -qiE "oneplus|oppo|realme|oplus" && ok=1
+[ $ok -eq 0 ] && echo "$model" | grep -qiE "^PHK|^PH[A-Z]|^CPH|^RMX|^PJ[A-Z]|^PL[A-Z]|^OPD" && ok=1
+
+if [ $ok -eq 0 ]; then
     ui_print " "
     ui_print "❌ 设备品牌监测失败!"
     ui_print "---------------------------------------------"
-    ui_print "监测到的品牌: $DEVICE_BRAND"
+    ui_print "监测到的品牌: $brand"
+    ui_print "监测到的制造商: $mfr"
+    ui_print "监测到的型号: $model"
     ui_print "---------------------------------------------"
     ui_print "此模块仅支持: OnePlus / OPPO / Realme"
     ui_print "安装已取消!"
     ui_print "============================================="
-    abort "设备不兼容"
+    abort "设备不普通😡😡😡"
 fi
 
-ui_print "✓ 品牌监测通过: $DEVICE_BRAND"
+ui_print "✅品牌监测通过: $brand / $mfr"
 
-ui_print "- 正在激活并监测刷新率档位..."
+aver=$("$GP" ro.build.version.release)
+romver=$("$GP" ro.build.display.id)
+kver=$(uname -r)
 
-for i in 0 1 2 3 4 5 6 7 8 9 10; do
-    service call SurfaceFlinger 1035 i32 $i >/dev/null 2>&1
-    usleep 100000
-done
+ui_print "---------------------------------------------"
+ui_print "【设备信息监测】"
+ui_print "• 机型型号: $model"
+ui_print "• 机型名称: $market"
+ui_print "• 安卓版本: Android $aver"
+ui_print "• 内核版本: $kver"
+ui_print "• 系统版本: $romver"
+ui_print "---------------------------------------------"
+
+modid="Yuanxing_Stellar_MaxRefresh_Pro"
+pdir="/data/adb/${modid}_data"
+mkdir -p "$pdir"
+set_perm "$pdir" 0 0 0755
+
+[ -f "$pdir/config.json" ] && cp -f "$pdir/config.json" "$MODPATH/config.json"
+[ -f "$pdir/apps.conf" ] && cp -f "$pdir/apps.conf" "$MODPATH/apps.conf"
+[ -f "$pdir/rates.conf" ] && cp -f "$pdir/rates.conf" "$MODPATH/rates.conf"
+
+[ ! -f "$MODPATH/config.json" ] && echo '{}' > "$MODPATH/config.json"
+[ ! -f "$MODPATH/apps.conf" ] && touch "$MODPATH/apps.conf"
+[ ! -f "$MODPATH/rates.conf" ] && touch "$MODPATH/rates.conf"
+
+set_perm "$MODPATH/config.json" 0 0 0644
+set_perm "$MODPATH/apps.conf" 0 0 0644
+set_perm "$MODPATH/rates.conf" 0 0 0644
+
+waitkey() {
+    getevent -qt 1 >/dev/null 2>&1
+    while true; do
+        ev=$(getevent -lqc 1 2>/dev/null | {
+            while read -r line; do
+                case "$line" in
+                    *KEY_VOLUMEDOWN*DOWN*) echo "down"; break ;;
+                    *KEY_VOLUMEUP*DOWN*) echo "up"; break ;;
+                    *KEY_POWER*DOWN*) input keyevent KEY_POWER; echo "power"; break ;;
+                esac
+            done
+        })
+        [ -n "$ev" ] && echo "$ev" && return
+        usleep 30000
+    done
+}
+
+ui_print "============================================="
+ui_print "- 安装须知（必读）"
+ui_print " "
+ui_print "  1) 极速高刷Pro不支持除欧加真以外的机型，当你修改机型校验逻辑强行刷入后，遇到的BUG请勿向我反馈"
+ui_print "  2) Alpha 及分支，请给「系统界面」与「系统桌面」Root 权限"
+ui_print "  3) KernelSU 及分支，请关闭「默认卸载模块」功能"
+ui_print "  4) 请勿与其它 “刷新率/VRR/LTPO” 类模块同时启用"
+ui_print " "
+ui_print "  [音量上] : 已阅读，继续安装"
+ui_print "  [音量下] : 退出安装"
+ui_print " "
+ui_print "============================================="
+
+key=$(waitkey)
+if [ "$key" != "up" ]; then
+    abort "未阅读须知"
+fi
+
+ui_print "============================================="
+ui_print "- 请选择 LTPO 控制模式"
+ui_print " "
+ui_print "  [电源键] : 兼容模式 (推荐，保留LTPO/VRR，仅关闭可能冲突开关)"
+ui_print "  [音量上] : 强制禁用 (高风险，可能耗电/闪屏/不稳定)"
+ui_print "  [音量下] : 保留模式 (全局不生效，仅应用配置切换)"
+ui_print " "
+ui_print "============================================="
+
+ltpo="compat"
+ltpo_s="兼容模式"
+key=$(waitkey)
+
+case "$key" in
+    down) ltpo="keep"; ltpo_s="已保留(仅应用)"; ui_print "- 已选择：保留LTPO (全局不生效)" ;;
+    power) ltpo="compat"; ltpo_s="兼容模式"; ui_print "- 已选择：兼容模式" ;;
+    up) ltpo="disable"; ltpo_s="强制禁用"; ui_print "- 已选择：强制禁用LTPO/VRR" ;;
+    *) ltpo="compat"; ltpo_s="兼容模式"; ui_print "- 已选择：兼容模式" ;;
+esac
+
+write_post_fs_data() {
+    case "$1" in
+        disable)
+            cat > "$MODPATH/post-fs-data.sh" << 'PFEOF'
+#!/system/bin/sh
+MODDIR=${0%/*}
+
+resetprop -n persist.oplus.display.vrr 0
+resetprop -n persist.oplus.display.vrr.adfr 0
+resetprop -n debug.oplus.display.dynamic_fps_switch 0
+resetprop -n sys.display.vrr.vote.support 0
+resetprop -n vendor.display.enable_dpps_dynamic_fps 0
+resetprop -n ro.display.brightness.brightness.mode 1
+resetprop -n debug.egl.swapinterval 1
+PFEOF
+            ;;
+        compat)
+            cat > "$MODPATH/post-fs-data.sh" << 'PFEOF'
+#!/system/bin/sh
+MODDIR=${0%/*}
+
+resetprop -n ro.surface_flinger.use_content_detection_for_refresh_rate false
+resetprop -n vendor.display.enable_optimize_refresh 0
+resetprop -n debug.oplus.display.dynamic_fps_switch 0
+PFEOF
+            ;;
+        keep|*)
+            cat > "$MODPATH/post-fs-data.sh" << 'PFEOF'
+#!/system/bin/sh
+MODDIR=${0%/*}
+PFEOF
+            ;;
+    esac
+}
+
+write_post_fs_data "$ltpo"
+set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
+
+echo "$ltpo" > "$MODPATH/ltpo_mode"
+set_perm "$MODPATH/ltpo_mode" 0 0 0644
 
 sleep 1
 
-LIST_FRAMEWORK=$(dumpsys display | grep -oE "fps=[0-9.]+" | awk -F= '{print $2}')
-LIST_SF=$(dumpsys SurfaceFlinger | grep -oE "fps[=:][0-9.]+" | awk -F'[=:]' '{print $2}')
-ALL_RATES="$LIST_FRAMEWORK $LIST_SF"
-DETECTED=$(echo "$ALL_RATES" | tr ' ' '\n' | awk '{if($1>=30) printf("%.0f\n", $1)}' | sort -n | uniq)
+ui_print "============================================="
+ui_print "- 监测完成，环境安全。"
+ui_print "- 可以关注下我的酷安吗喵？🥹🥹🥹"
+ui_print "  (作者: 穆远星 / ID: 28719807)"
+ui_print " "
+ui_print "  [音量上] : 好的喵 (关注并安装) 🥰"
+ui_print "  [音量下] : 不要喵 (直接安装) 😤"
+ui_print "============================================="
 
-RATES=$(echo "$DETECTED" | xargs)
+jump="false"
+key=$(waitkey)
 
-ui_print "---------------------------------------------"
-ui_print "• 设备厂商: $DEVICE_BRAND"
-if [ -z "$RATES" ]; then
-    ui_print "• 支持刷新率: 未检测到有效档位"
+if [ "$key" = "up" ]; then
+    jump="true"
+    ui_print "- 感谢关注喵✋😭✋！"
 else
-    ui_print "• 支持刷新率: $RATES"
-fi
-ui_print "---------------------------------------------"
-
-MODID="Yuanxing_Stellar_MaxRefresh_Pro"
-PERSISTENT_DIR="/data/adb/${MODID}_data"
-mkdir -p "$PERSISTENT_DIR"
-set_perm "$PERSISTENT_DIR" 0 0 0755
-
-if [ -f "$PERSISTENT_DIR/saved_config" ]; then
-    cp -f "$PERSISTENT_DIR/saved_config" "$MODPATH/saved_config"
-else
-    touch "$MODPATH/saved_config"
+    ui_print "- 不关注俺喵✋😭✋"
 fi
 
-if [ -f "$PERSISTENT_DIR/apps.conf" ]; then
-    cp -f "$PERSISTENT_DIR/apps.conf" "$MODPATH/apps.conf"
+if [ "$ltpo" = "keep" ]; then
+    desc="为${market}(${model})提供极速高刷。LTPO状态: ${ltpo_s}。首次刷入请配置。保留LTPO模式下：全局档位不生效，仅应用配置切换生效。应用配置页面，填写目标应用包名及刷新率档位对应ID，即可为指定应用单独配置专属刷新率，实时生效。"
 else
-    touch "$MODPATH/apps.conf"
+    desc="为${market}(${model})提供极速高刷。LTPO状态: ${ltpo_s}。首次刷入请配置。后续重启将自动切换至选定的全局刷新率档位。应用配置页面，填写目标应用包名及刷新率档位对应ID，即可为指定应用单独配置专属刷新率，实时生效。"
+fi
+desc_esc=$(echo "$desc" | sed 's/[\/&]/\\&/g')
+
+if grep -q "^description=" "$MODPATH/module.prop"; then
+    sed -i "s/^description=.*/description=${desc_esc}/" "$MODPATH/module.prop"
+else
+    echo "description=${desc}" >> "$MODPATH/module.prop"
 fi
 
-set_perm "$MODPATH/saved_config" 0 0 0644
-set_perm "$MODPATH/apps.conf" 0 0 0644
+sleep 1
+ui_print "- 已更新模块属性文件"
 
-sh "$MODPATH/setup_extras.sh"
+if [ "$jump" = "true" ]; then
+    boot=$("$GP" sys.boot_completed)
+    if [ "$boot" = "1" ]; then
+        sleep 1
+        ui_print "- 正在打开酷安..."
+        am start -a android.intent.action.VIEW -d "http://www.coolapk.com/u/28719807" >/dev/null 2>&1
+    fi
+fi
 
-ui_print "***********************************************"
-ui_print "✅ 安装完成！请重启设备使模块生效"
-ui_print "***********************************************"
+ui_print "============================================="
+ui_print "✅ 安装完成！"
+ui_print "============================================="
